@@ -14,13 +14,16 @@ start_template = """
         <h4 style="margin-bottom: 0px">Contact Box</h4>
         <ul style="list-style-type: none;">
             <li style="display: inline;">
-                <a href="/">Home</a> &nbsp
+                <a href="/">Home</a> &nbsp;
             </li>
             <li style="display: inline;">
-                <a href="/new">Dodaj osobę</a> &nbsp
+                <a href="/new">Dodaj osobę</a> &nbsp;
                 </li>
             <li style="display: inline;">
-                <a href="/new_group">Utwórz grupę</a> &nbsp
+                <a href="/new_group">Utwórz grupę</a> &nbsp;
+            </li>
+            <li style="display: inline;">
+                <a href="/show_groups">Lista grup</a> &nbsp;
             </li>
         </ul>
         <p>&nbsp</p>
@@ -283,7 +286,7 @@ def show_person(request, id):
 
 
 def view_all(request):
-    person_data = Person.objects.all().order_by("first_name")
+    person_data = Person.objects.all().order_by("first_name", "last_name")
 
     table_rows = ""
     for person in person_data:
@@ -704,6 +707,9 @@ def show_groups(request):
                         <th style="border: 1px solid black">
                         Liczba użytkowników
                         </th>
+                        <th style="border: 1px solid black">
+                        Dodaj członka
+                        </th>
                     </tr>
                 <tbody>
         """
@@ -717,6 +723,9 @@ def show_groups(request):
              border-collapse: collapse">
             <td><a href="/display_group/{group.id}">{group.name}</a></td>
             <td style="text-align: right;">{person_count}</td>
+            <td style="text-align: center;"><a href="/add_member/{group.id}">
+            Dodaj
+            </a></td>
             </tr>"""
 
         group_list_html += """
@@ -732,7 +741,7 @@ def show_groups(request):
 def display_group(request, id):
     group_data = check_id("group", id)
     member_data = group_data.person.all().order_by(
-        "first_name").order_by("last_name")
+        "first_name", "last_name")
 
     group_display_html = f"""
     <h2>{group_data.name}</h2>
@@ -751,7 +760,59 @@ def display_group(request, id):
     else:
         group_display_html += "<p>Brak członków w tej grupie.</p>"
 
+    group_display_html += f"""<p>
+        <a href="/add_member/{group_data.id}">Dodaj osobę</a>
+    </p>"""
+
     return HttpResponse(start_template.format(group_display_html))
 
-# ToDo: Dodawanie osób + link na listę grup oraz w display_group
+
+@csrf_exempt
+def add_member(request, id):
+    group_data = check_id("group", id)
+    persons_data = Person.objects.all().order_by("first_name", "last_name")
+
+    member_add_form = f"""
+            <h2>Dodawanie członka do grupy: {group_data.name}</h2>
+            <form action="#" method="POST">
+                <select name="new_member">Wybierz osobę:
+                <option selected="true" disabled="true">Lista dostępnych</option>"""
+
+    i = 0
+    for person in persons_data:
+        if person in group_data.person.all():
+            continue
+        else:
+            member_add_form += f"""<option value="{person.id}">
+            {person.first_name} {person.last_name}
+            </option>
+            """
+            i += 1
+
+    if i == 0:
+        member_add_form = f"""
+            <h2>Dodawanie członka do grupy: {group_data.name}</h2>
+            <p>Brak osób możliwych do dodania.</p>"""
+    else:
+        member_add_form += """</select>
+                    <button type="submit" name="submit">Dodaj</button>
+                </form>
+                """
+
+    if request.method == "GET":
+        return HttpResponse(start_template.format(member_add_form))
+    elif request.method == "POST":
+        if request.POST.get("new_member"):
+            group_data.person.add(
+                Person.objects.get(id=request.POST.get("new_member"))
+            )
+            return redirect(
+                reverse("display_group", kwargs={"id": group_data.id})
+            )
+        else:
+            return HttpResponse("Błąd.")
+
+
+
 # ToDo: Wyszukiwarka
+# Wyszukiwanie po imieniu i nazwisku POST na /group-search - przeszukaj model Grupy. CZyli kto w której grupie?
