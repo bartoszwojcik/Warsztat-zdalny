@@ -5,6 +5,7 @@ class Person(models.Model):
     first_name = models.CharField(max_length=40, null=False)
     last_name = models.CharField(max_length=40, null=False)
     description = models.TextField()
+    avatar = models.ImageField(upload_to="media/", null=True)
 
 
 class Address(models.Model):

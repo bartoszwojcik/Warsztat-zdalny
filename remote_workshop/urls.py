@@ -14,12 +14,14 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.conf.urls.static import static
 from django.urls import path, re_path
 from contact_box.views import new_person, view_all, modify_person,\
     delete_person, show_person, add_address, modify_address, delete_address,\
     add_email, modify_email, delete_email, add_phone, modify_phone,\
     delete_phone, new_group, show_groups, display_group, add_member,\
     group_search
+from remote_workshop.settings import DEBUG, MEDIA_ROOT, MEDIA_URL
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -80,3 +82,5 @@ urlpatterns = [
     path('group_search/', group_search, name="group_search")
 ]
 
+if DEBUG:
+    urlpatterns += static(MEDIA_URL, document_root=MEDIA_ROOT)

@@ -4,8 +4,12 @@ from django.db.models import Q, Count
 from django.http import HttpResponse, Http404
 from django.shortcuts import render, redirect
 from django.urls import reverse
+from django.utils.datastructures import MultiValueDictKeyError
 from django.views.decorators.csrf import csrf_exempt
 from contact_box.models import Person, Group, Address, Phone, Email
+
+# Warning: image uploads are simplified. They do not use unique user catalogues
+# and there is currently no file-deletion system.
 
 # Simple general website skeleton with added menu
 start_template = """
@@ -233,7 +237,7 @@ def check_id(type, tested_id):
 def new_person(request):
     person_add_form = """
     <h2>Dodawanie nowej osoby</h2>
-    <form action="#" method="POST">
+    <form action="#" method="POST" enctype="multipart/form-data">
         <label>Imię:
             <input type="text" name="first_name" maxlength="40">
         </label><br><br>
@@ -243,6 +247,9 @@ def new_person(request):
         <label>Opis:
             <input type="text" name="description">
         </label><br><br>
+        <label>Obrazek:
+            <input type="file" name="avatar">
+        </label><br><br>
         <button type="submit" name="submit">Submit</button>
     </form>
     """
@@ -251,11 +258,11 @@ def new_person(request):
         return HttpResponse(start_template.format(person_add_form))
     elif request.method == "POST":
         if request.POST.get("first_name") and request.POST.get("last_name"):
-
             a_new_person = Person.objects.create(
                 first_name=request.POST.get("first_name"),
                 last_name=request.POST.get("last_name"),
-                description=request.POST.get("description")
+                description=request.POST.get("description"),
+                avatar=request.FILES.get("avatar")
             )
             return redirect(
                 reverse("show_person", kwargs={"id": a_new_person.id})
@@ -270,8 +277,15 @@ def show_person(request, id):
     except ObjectDoesNotExist:
         return HttpResponse("Nie ma osoby o tym numerze.")
 
+    image = ""
+    if person_data.avatar:
+        image = f"""<img src=/media/{person_data.avatar} 
+                style="max-width: 200px; max-height: 200px">
+                </img><br><br>"""
+
     person_display_html = f"""
     <h2>{person_data.first_name} {person_data.last_name}</h2>
+    {image}
     <p>Opis: {person_data.description}</p><br>
     <p><a href="/modify/{person_data.id}">Modyfikuj dane</a></p><br>
     <h4>Adresy:</h4>
@@ -335,9 +349,16 @@ def modify_person(request, id):
     <p><a href="{person_data.id}/add_email/">Dodaj nowy adres e-mail</a></p><br>
     """
 
+    image = ""
+    if person_data.avatar:
+        image = f"""<img src=/media/{person_data.avatar} 
+            style="max-width: 200px; max-height: 200px">
+            </img><br><br>"""
+
     person_modify_html = f"""
         <h2>{person_data.first_name} {person_data.last_name}</h2>
-        <form action="#" method="POST">
+        <form action="#" method="POST" enctype="multipart/form-data">
+            {image}
             <label>Imię:
                 <input type="text" name="new_first_name" maxlength="40"
                  value="{person_data.first_name}">
@@ -350,6 +371,15 @@ def modify_person(request, id):
                 <input type="text" name="new_description"
                  value="{person_data.description}">
             </label><br><br>
+            <label>Nowy obrazek:
+            <input type="file" name="new_avatar">
+            <br><br>
+            <label>Usunąć obrazek?
+                <select name="remove_avatar">
+                    <option value="1">Tak</option>
+                    <option selected value="0">Nie</option>
+                </select><br><br>
+            </label>
             <input type="submit" name="send" value="Modyfikuj">
         </form>
         {person_contact_data}
@@ -363,6 +393,10 @@ def modify_person(request, id):
             person_data.first_name = request.POST.get("new_first_name")
             person_data.last_name = request.POST.get("new_last_name")
             person_data.description = request.POST.get("new_description")
+            if request.FILES.get("new_avatar"):
+                person_data.avatar = request.FILES.get("new_avatar")
+            if int(request.POST.get("remove_avatar")) == 1:
+                person_data.avatar = None
             person_data.save()
             return redirect(reverse("view_all"))
         else:
