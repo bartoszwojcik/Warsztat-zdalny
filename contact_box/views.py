@@ -25,6 +25,9 @@ start_template = """
             <li style="display: inline;">
                 <a href="/show_groups">Lista grup</a> &nbsp;
             </li>
+            <li style="display: inline;">
+                <a href="/group_search">Przeszukaj grupy</a> &nbsp;
+            </li>
         </ul>
         <p>&nbsp</p>
         <div>
@@ -699,6 +702,7 @@ def show_groups(request):
     if group_data:
 
         group_list_html = """<h2>Lista istniejących grup</h2>
+        <p><a href="/search-groups">Przeszukaj grupy</a></p>
         <table style="border: 1px solid black; border-collapse: collapse">
                 <thead>
                     <tr style="border: 1px solid black;
@@ -813,6 +817,85 @@ def add_member(request, id):
             return HttpResponse("Błąd.")
 
 
+@csrf_exempt
+def group_search(request):
 
-# ToDo: Wyszukiwarka
-# Wyszukiwanie po imieniu i nazwisku POST na /group-search - przeszukaj model Grupy. CZyli kto w której grupie?
+    search_form_html = """
+            <h2>Wyszukiwanie osób w grupach</h2>
+            <br>
+            <form method="POST" action="#">
+                <label>Imię:
+                    <input type="text" name="first_name">
+                </label><br><br>
+                <label>Nazwisko:
+                    <input type="text" name="last_name">
+                </label><br><br>
+                <button type="submit" name="search">Szukaj</button>
+            </form>
+        """
+
+    def search_results(s_first_name=None, s_last_name=None):
+
+        person_data = None
+
+        if s_first_name and s_last_name:
+            person_data = Person.objects.filter(
+                Q(first_name__icontains=s_first_name)
+                & Q(last_name__icontains=s_last_name)
+            ).order_by("first_name", "last_name")
+
+        elif s_first_name:
+            person_data = Person.objects.filter(
+                Q(first_name__icontains=s_first_name)
+            ).order_by("first_name", "last_name")
+
+        elif s_last_name:
+            person_data = Person.objects.filter(
+                Q(last_name__icontains=s_last_name)
+            ).order_by("first_name", "last_name")
+
+        else:
+            person_data = Person.objects.order_by("first_name", "last_name")
+
+        # Build result list
+        search_result_output = ""
+        if not person_data:
+            search_result_output = "Brak wyników."
+        else:
+            search_result_output += """Wyniki wyszukiwania:<br>
+            <table style="border: 1px solid black; border-collapse: collapse">
+                <thead>
+                <tr style="border: 1px solid black; border-collapse: collapse">
+                    <th style="border: 1px solid black">Imię i nazwisko</th>
+                    <th style="border: 1px solid black">Grupy</th>
+                    </tr>
+                <tbody>
+            """
+            for person in person_data:
+                search_result_output += f"""
+                <tr style="border: 1px solid black; border-collapse: collapse">
+                    <td><a href="/show/{person.id}">
+                    {person.first_name} {person.last_name}</a></td>
+                    <td style="border: 1px solid black">"""
+                print(person)
+                for group in person.persons_in_groups.all():
+                    search_result_output += f"""
+                        <a href="/display_group/{group.id}">{group.name}</a>
+                        <br>"""
+                search_result_output += """</td>
+                </tr>
+                """
+            search_result_output += "</tbody></table>"
+        return search_result_output
+
+    # Function begins here
+
+    if request.method == "GET":
+        return HttpResponse(start_template.format(search_form_html))
+    elif request.method == "POST":
+        result_html = search_results(
+            s_first_name=request.POST.get("first_name"),
+            s_last_name=request.POST.get("last_name")
+        )
+
+        return HttpResponse(start_template.format(result_html))

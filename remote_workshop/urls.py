@@ -18,7 +18,8 @@ from django.urls import path, re_path
 from contact_box.views import new_person, view_all, modify_person,\
     delete_person, show_person, add_address, modify_address, delete_address,\
     add_email, modify_email, delete_email, add_phone, modify_phone,\
-    delete_phone, new_group, show_groups, display_group, add_member
+    delete_phone, new_group, show_groups, display_group, add_member,\
+    group_search
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -76,5 +77,6 @@ urlpatterns = [
     re_path(
         r"""^add_member/(?P<id>(\d)+)$""", add_member, name="add_member"
     ),
+    path('group_search/', group_search, name="group_search")
 ]
 
