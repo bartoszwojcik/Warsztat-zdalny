@@ -736,7 +736,7 @@ def show_groups(request):
     if group_data:
 
         group_list_html = """<h2>Lista istniejących grup</h2>
-        <p><a href="/search-groups">Przeszukaj grupy</a></p>
+        <p><a href="/group_search">Przeszukaj grupy</a></p>
         <table style="border: 1px solid black; border-collapse: collapse">
                 <thead>
                     <tr style="border: 1px solid black;

@@ -10,6 +10,21 @@ Bootcamp remote workshop. Website application imitating a contact list which cou
 * Menu with main functions
 * Support for uploading and changing images (avatars).
 
+# Sample screenshots
+
+Contact List (Index)
+
+![Contact List](screenshots/contact-list.png)
+
+Contact Details
+
+![Contact Details](screenshots/contact-details.png)
+
+Contact Modification
+
+![Contact Modification](screenshots/contact-modification.png)
+
+
 # Author
 Bartosz Wójcik
 bartosz.wojcik@bartvessh.com
